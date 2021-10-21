@@ -1,0 +1,236 @@
+---
+title: "Machine Learning 1"
+author: "Angelita Rivera (PID A15522236)"
+date: "10/21/2021"
+output: html_document
+---
+
+First up is clustering methods
+
+#Kmeans clustering 
+
+The function in base R to do Kmeans clustering is called 'kmeans()'. 
+
+First make up some data where we know what the answer should be: 
+
+```{r}
+#rnorm() gives 30 points, separated around -3 or 3
+tmp <-  c(rnorm(30, -3), rnorm(30,3))
+x <-  cbind(x = tmp, y = rev(tmp))
+#The rev() function does the reverse of the function 
+x
+plot(x)
+```
+
+> Q. Can we use kmeans() to cluster this data setting k 2 and nstart to 20? 
+
+```{r}
+?kmeans
+km <- kmeans(x, centers = 2, nstart = 20)
+km
+```
+
+> Q. How many points are in each cluster? 
+
+```{r}
+km$size
+```
+There are 30 points in each cluster. 
+
+> Q. What 'component' of your result object details cluster assignment/membership? 
+
+```{r}
+km$cluster
+```
+The function 'km$cluster' gives the cluster assignments/membership. 
+
+> Q. What 'component' of your result object details cluster center?
+
+```{r}
+km$centers
+```
+The function 'km$center' gives the cluster center. 
+
+> Q. Plor x colored by the kmeans cluster assignment and add cluster centers as blue points. 
+
+```{r}
+plot(x, col = km$cluster)
+points(km$center, col = "blue", pch = 15, cex = 2)
+```
+
+#Hierarchical Clustering
+
+A big limitation with k-means is that we have to tell it K (the number of clusters we want). 
+
+Analyze the same data with hclust()
+
+Demonstrate the use of dist(), hclust(), plot(), and cutree() functions to do clustering, generate dendrograms and return cluster assignment membership vector...
+
+```{r}
+hc <- hclust(dist(x))
+hc
+```
+
+There is a plot method for hclust() result objects. Let's see it. 
+
+```{r}
+plot(hc)
+```
+
+To get our membership vector we have to do a wee bit more work. We have to "cut" the tree where we think it makes sense. For this we use the 'cutree()' function, 
+
+```{r}
+cutree(hc, h = 6)
+#h=6 means it's cutting at height 6 ... from tree above.
+```
+
+You could also call 'cutree()' setting k = the number of grps/clusters you want. 
+
+```{r}
+cutree(hc, k=2)
+```
+
+```{r}
+grps <-  cutree(hc, k=2)
+```
+
+Make our results plot. 
+
+```{r}
+plot(x, col = grps)
+```
+
+**Class 8 Lab**
+#Principal Component Analysis 
+
+Read data on food stuffs from the UK:
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+x
+```
+
+> Q1. How many rows and columns are in your new data frame named x? What R functions could you use to answer this questions?
+
+```{r}
+nrow(x)
+ncol(x)
+```
+
+> Checking your data: Preview the first 6 rows of the dataset. 
+
+```{r}
+head(x)
+```
+
+Uh-oh! The row-names are incorrectly set as the first column of our data frame. Let's try to fix it by getting rid of the extra first column. 
+
+One way we could do it is: 
+```{r}
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x)
+```
+But, if we run it again, we lose a country. So, it's dangerous! Let's find another way to do this.
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url, row.names = 1)
+head(x)
+```
+Here, we argued with the initial reading function to get rid of the column #1 while we imported the data. This is a safer way of rearranging the columns. 
+
+> Q2. Which approach to solving the ‘row-names problem’ mentioned above do you prefer and why? Is one approach more robust than another under certain circumstances?
+
+As mentioned above, it is safer and therefore better to use the second method. This is because if we use the first and keep running the code, we will eventually loose all of our data. Whereas the second method, let's us edit our display as we're importing it to R. 
+
+> Q3: Changing what optional argument in the above barplot() function results in the following plot?
+
+```{r}
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+barplot(as.matrix(x), beside=F, col=rainbow(nrow(x)))
+```
+To change between plots, you set the argument 'beside' to FALSE instead of TRUE. 
+
+> Q5. Generating all pairwise plots may help somewhat. Can you make sense of the following code and resulting figure? What does it mean if a given point lies on the diagonal for a given plot?
+
+```{r}
+pairs(x, col=rainbow(10), pch=16)
+```
+The function let's us read 'pairs' of all the countries. For example, in the first row, England is being compared all three places (Wales, Scotland, and N. Ireland). This is a matrix of scatter plots that shows us the different pairwise comparisons of all the different variables (i.e. different food stuffs represented are shown by different colored points). I belive, If a point lies on the diagonal it's following the expected plot/more similar.  
+
+#PCA to the rescue! 
+> Q6. What is the main differences between N. Ireland and the other countries of the UK in terms of this data-set?
+
+The two countries have the most differences; because their data points are farther apart (deviating from the linear path). 
+
+
+The main function in base R for PCA is 'prcomp()' This function wants the transpose of our data. 
+
+```{r}
+pca <- prcomp(t(x))
+summary(pca)
+```
+
+```{r}
+attributes(pca)
+```
+
+> Q7. Complete the code below to generate a plot of PC1 vs PC2. The second line adds text labels over the data points.
+
+```{r}
+pca$x
+plot(pca$x[,1], pca$x[,2], xlab="PC1", ylab="PC2", xlim=c(-270,500))
+text(pca$x[,1], pca$x[,2], colnames(x))
+```
+
+> Q8. Customize your plot so that the colors of the country names match the colors in our UK and Ireland map and table at start of this document.
+
+```{r}
+pca$x
+plot(pca$x[,1], pca$x[,2], xlab="PC1", ylab="PC2", xlim=c(-270,500))
+text(pca$x[,1], pca$x[,2], colnames(x))
+color <- c("orange", "red", "blue", "green")
+
+pca$x
+plot(pca$x[,1], pca$x[,2], xlab="PC1", ylab="PC2", xlim=c(-270,500))
+text(pca$x[,1], pca$x[,2], colnames(x), col=color)
+```
+
+> Q9: Generate a similar ‘loadings plot’ for PC2. What two food groups feature prominantely and what does PC2 maninly tell us about?
+
+```{r}
+#v = how much variation in the original data each PC accounts for
+v <- round( pca$sdev^2/sum(pca$sdev^2) * 100 )
+v
+
+# or the second row here...
+z <- summary(pca)
+z$importance
+
+barplot(v, xlab="Principal Component", ylab="Percent Variation")
+
+## Lets focus on PC1 as it accounts for > 90% of variance 
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,1], las=2 )
+```
+
+```{r}
+barplot( pca$rotation[,2], las=2 )
+```
+It features Fresh_potatoes and Soft_drinks. PC2 tells us that about the variation. 
+
+> Q10. How many genes and samples are in this data set?
+
+```{r}
+url2 <- "https://tinyurl.com/expression-CSV"
+rna.data <- read.csv(url2, row.names=1)
+head(rna.data)
+```
+
+```{r}
+dim(rna.data)
+```
+
+There is 100 genes and 10 samples. 
