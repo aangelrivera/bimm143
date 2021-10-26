@@ -1,0 +1,200 @@
+---
+title: "Class_09_MiniProject"
+author: "Angelita Rivera (PID A15522236)"
+date: "10/26/2021"
+output: pdf_document
+---
+
+```{r}
+
+# Save your input data file into your Project directory
+fna.data <- "WisconsinCancer.csv"
+
+# Complete the following code to input the data and store as wisc.df
+wisc.df <- read.csv(fna.data, row.names=1)
+
+head(wisc.df)
+View(wisc.df)
+```
+
+Now that we have our data uploaded, we can begin our analysis. 
+
+```{r}
+# We can use -1 here to remove the first column
+wisc.data <- wisc.df[,-1]
+
+# Create diagnosis vector for later 
+diagnosis <- as.factor(c(wisc.df[,1]))
+diagnosis
+
+is.factor(diagnosis)
+```
+
+# **Exploratory Data Analysis**
+
+> **Q1.** How many observations are in this dataset? 
+
+```{r}
+str(wisc.data)
+str(diagnosis)
+```
+
+There are 569 observations total in this dataset.
+
+> **Q2.** How many observations have a malignant diagnosis? 
+
+```{r}
+table(diagnosis)
+```
+
+212 observations have a malignant diagnosis. 
+
+> **Q3.** How many variables/features in the data are suffixed with _mean?
+
+```{r}
+wisc.colnames <- c(colnames(wisc.data))
+wisc.colnames
+
+grep("_mean", wisc.colnames)
+```
+
+There are 10 variables/features suffixed with _mean in this dataset. 
+
+# **Principal Component Analysis**
+
+```{r}
+# Check column means and standard deviations
+colMeans(wisc.data)
+
+apply(wisc.data,2,sd)
+
+```
+
+```{r}
+# Perform PCA on wisc.data by completing the following code
+wisc.pr <- prcomp(wisc.data, scale = TRUE)
+
+# Look at summary of results
+summary(wisc.pr)
+```
+
+> **Q4.** From your results, what proportion of the original variance is captured by the first principal components (PC1)?
+
+The proportion of original variance captured by the first principal components of PC1 is 0.4427. 
+
+> **Q5.** How many principal components (PCs) are required to describe at least 70% of the original variance in the data?
+
+We need 3 principal components to describe at least 70% of the original variance in the data. 
+
+> **Q6.** How many principal components (PCs) are required to describe at least 90% of the original variance in the data?
+
+We need 7 principal components to describe at least 90% of the original variance in the data. 
+
+# **Interpreting PCA Results**
+
+> **Q7.** What stands out to you about this plot? Is it easy or difficult to understand? Why?
+
+The biplot is not useful for a large data set like we have. It is only useful for a smaller data set (10-15 variables). It uses labels as plots, which, because we have so much data, is near impossible to read. It is way too compacted. We need to create a better plot; something that allows us to plot/view the data in a more clear, readable way. 
+
+```{r}
+biplot(wisc.pr)
+```
+
+```{r}
+# Scatter plot observations by components 1 and 2
+plot(wisc.pr$x, col = diagnosis,
+     xlab = "PC1", ylab = "PC2")
+```
+
+> **Q8.** Generate a similar plot for principal components 1 and 3. What do you notice about these plots?
+
+```{r}
+# Repeat for components 1 and 3
+plot(wisc.pr$x[,1], wisc.pr$x[,3], col = diagnosis, 
+     xlab = "PC1", ylab = "PC3")
+```
+
+The plot is much easier to read. And, it appears to be separated by benign (black) and malignant (red) tumors. 
+
+### ggplot
+```{r}
+# Create a data.frame for ggplot
+df <- as.data.frame(wisc.pr$x)
+df$diagnosis <- diagnosis
+
+# Load the ggplot2 package
+library(ggplot2)
+
+# Make a scatter plot colored by diagnosis
+ggplot(df) + 
+  aes(PC1, PC2, col= diagnosis) + 
+  geom_point()
+```
+
+```{r}
+# Calculate variance of each component
+pr.var <- wisc.pr$sdev^2
+head(pr.var)
+```
+
+```{r}
+
+# Variance explained by each principal component: pve
+pve <- pr.var / sum(pr.var)
+
+# Plot variance explained for each principal component
+plot(pve, xlab = "Principal Component", 
+     ylab = "Proportion of Variance Explained", 
+     ylim = c(0, 1), type = "o")
+```
+
+```{r}
+# Alternative scree plot of the same data, note data driven y-axis
+barplot(pve, ylab = "Precent of Variance Explained",
+     names.arg=paste0("PC",1:length(pve)), las=2, axes = FALSE)
+axis(2, at=pve, labels=round(pve,2)*100 )
+```
+
+# **Optional**
+
+```{r}
+## ggplot based graph
+library(factoextra)
+fviz_eig(wisc.pr, addlabels = TRUE)
+```
+
+# **Communicating PCA results**
+
+> **Q9.** For the first principal component, what is the component of the loading vector (i.e. wisc.pr$rotation[,1]) for the feature concave.points_mean?
+
+```{r}
+wisc.pr$rotation["concave.points_mean",1]
+```
+
+According to the function above; the component of the loading vector is -0.2608538. 
+
+> **Q10.** What is the minimum number of principal components required to explain 80% of the variance of the data?
+
+```{r}
+var <- summary(wisc.pr)
+sum(var$importance[3,] < 0.8)
+```
+
+4 principal components are required to explain 80% of the variance data. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
