@@ -2,7 +2,7 @@
 title: "Machine Learning 1"
 author: "Angelita Rivera (PID A15522236)"
 date: "10/21/2021"
-output: html_document
+output: pdf_document
 ---
 
 First up is clustering methods
