@@ -14,7 +14,6 @@ fna.data <- "WisconsinCancer.csv"
 wisc.df <- read.csv(fna.data, row.names=1)
 
 head(wisc.df)
-View(wisc.df)
 ```
 
 Now that we have our data uploaded, we can begin our analysis. 
@@ -182,16 +181,111 @@ sum(var$importance[3,] < 0.8)
 
 4 principal components are required to explain 80% of the variance data. 
 
+# **Hierarchical clustering**
+
+```{r}
+# Scale the wisc.data data using the "scale()" function
+data.scaled <- scale(wisc.data)
+data.dist <- dist(data.scaled)
+wisc.hclust <- hclust(data.dist)
+plot(wisc.hclust)
+abline(h = 19, col = "red", lty = 2)
+```
+
+> **Q11.** Using the plot() and abline() functions, what is the height at which the clustering model has 4 clusters?
+
+The height at which the clustering model has 4 clusters is 19. 
+
+> **Q12.** Can you find a better cluster vs diagnoses match by cutting into a different number of clusters between 2 and 10?
+
+No, 4 clusters appears to be the best suited number of clusters for this dataset. 
+
+Cut the tree into 4 groups
+```{r}
+wisc.hclust.clusters <- cutree(wisc.hclust, k=4)
+```
+
+# **Combining methods; Clustering on PCA results**
+
+We take the results of our PCA analysis and cluster in this space 'wisc.pr$x' 
+
+```{r}
+summary(wisc.pr)
+```
+
+```{r}
+wisc.pc.hclust <- hclust( dist(wisc.pr$x[,1:3]), method = "ward.D2")
+```
+
+> **Q13.** Which method gives your favorite results for the same data.dist dataset? Explain your reasoning.
+
+I liked the method we did above the best because it takes a "bottom up" approach to clustering, which allows us to easily see clearly defined clusters. I thought the method above (and below) gave us the best clustering/plot because the variance was minimized within each cluster. 
 
 
+Plot my dendrogram 
+```{r}
+plot( wisc.pc.hclust)
+abline(h=60, col = "red")
+```
+
+Cut the tree into k=2 groups
+```{r}
+grps <- cutree(wisc.pc.hclust, k=2)
+table(grps)
+```
+
+Cross table compare of diagnosis and my cluster groups 
+```{r}
+table(diagnosis, grps)
+```
+
+> **Q15.** How well does the newly created model with four clusters separate out the two diagnoses?
+
+Yes, it does a good job! 
 
 
+# **Sensitivity/Specificity**
+
+**Accuracy** What proportion did we get correct if we call cluster 1 M and cluster 2 B? 
+
+```{r}
+(333+179)/nrow(wisc.data)
+```
+
+**Sensitivity** refers to a test’s ability to correctly detect ill patients who do have the condition. In our example here the sensitivity is the total number of samples in the cluster identified as predominantly malignant (cancerous) divided by the total number of known malignant samples. In other words: TP/(TP+FN).
+
+```{r}
+179/(179 + 33)
+```
+
+**Specificity** relates to a test’s ability to correctly reject healthy patients without a condition. In our example specificity is the proportion of benign (not cancerous) samples in the cluster identified as predominantly benign that are known to be benign. In other words: TN/(TN+FN).
+
+```{r}
+333/(333 + 24)
+```
+
+# **Prediction**
+```{r}
+#url <- "new_samples.csv"
+url <- "https://tinyurl.com/new-samples-CSV"
+new <- read.csv(url)
+npc <- predict(wisc.pr, newdata=new)
+```
+
+> **Q17.** Which of your analysis procedures resulted in a clustering model with the best specificity? How about sensitivity?
+
+The PCA clustering method has the best specificity and sensitivity. 
 
 
+```{r}
+plot(wisc.pr$x[,1:2], col = diagnosis)
+points(npc[,1], npc[,2], col="blue", pch=16, cex=3)
+text(npc[,1], npc[,2], c(1,2), col="white")
+```
 
+> **Q18.** Which of these new patients should we prioritize for follow up based on your results?
 
-
-
+You should prioritize patient #2, because their diagnosis falls within the malignant cluster. 
 
 
 
