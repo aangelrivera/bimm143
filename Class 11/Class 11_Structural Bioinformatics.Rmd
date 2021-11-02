@@ -39,7 +39,7 @@ There are 1828 HIV-1 protease structures in the current PDB.
 
 > **Q4:** Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
 
-Hydrogen atoms are too small to see compared to oxygen. 
+Hydrogen atoms are too small to see compared to oxygen, since it is the smallest atom. 
 
 > **Q5:** There is a conserved water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have (see note below)?
 
