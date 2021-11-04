@@ -1,0 +1,102 @@
+---
+title: "Class 12_Structural Bioinformatics II"
+author: "Angelita Rivera (PID A15522236)"
+date: "11/4/2021"
+output: pdf_document
+---
+
+# Comparative analysis of protein structures
+
+Using the bio3d package. 
+
+```{r}
+library(bio3d)
+
+pdb <- read.pdb("1hel")
+pdb
+```
+
+Let's use a bioinformatics method called NMA (Normal Mode Analysis) to predict the dynamics (flexibility) of this enzyme. 
+
+```{r}
+modes <- nma(pdb)
+
+plot.nma(modes)
+```
+Make a "move" of its predicted motion. We often call this a "trajectory". 
+
+```{r}
+mktrj(modes, file = "nma.pdb")
+```
+
+
+![](vmdscene.class12.png)
+
+
+# Analysis of ADK
+
+```{r}
+library(bio3d)
+aa <- get.seq("1ake_A")
+aa
+```
+
+```{r}
+# Run BLAST from BLAST
+# blast <- blast.pdb(aa)
+```
+
+
+```{r}
+# hits <- plot(blast)
+```
+
+```{r}
+# hits$pdb.id
+```
+
+```{r}
+# Download releated PDB files
+# files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+
+Multiple structure alignmentcd
+
+```{r}
+# pdbs <- pdbaln(files, fit = TRUE)
+```
+
+```{r}
+# Align releated PDBs
+# pdbs <- pdbaln(files, fit = TRUE)#, exefile="msa")
+#save(pdbs, blast, file="mydata.RData")
+load(file="mydata.RData")
+```
+
+```{r}
+# Vector containing PDB codes for figure axis
+ids <- basename.pdb(pdbs$id)
+
+# Draw schematic alignment
+plot(pdbs, labels=ids)
+```
+
+# PCA 
+
+We will use the bio3d pca() function which is deigned for protein structure data.
+
+```{r}
+# Perform PCA
+pc.xray <- pca(pdbs)
+plot(pc.xray)
+```
+
+Make a trajectory visualization of the motion captured by the first Principal Component. 
+
+```{r}
+# Visualize first principal component
+pc1 <- mktrj(pc.xray, pc=1, file="pc_1.pdb")
+```
+
+![](vmdscene.class12.2.png)
+
