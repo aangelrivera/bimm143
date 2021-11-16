@@ -1,0 +1,268 @@
+---
+title: "Class 15 RNASeq Analysis"
+author: "Angelita Rivera (PID A15522236)"
+date: "11/16/2021"
+output: pdf_document
+---
+
+# Background 
+Our data for today come from Himes et al. RNASeq analysis of the drug  dexamethasone, a synthetic glucocorticoid steroid with anti-inflammatory effects (Himes et al. 2014).
+
+Read the countData and colData. 
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", row.names=1)
+metadata <-  read.csv("airway_metadata.csv")
+```
+
+```{r}
+head(counts)
+```
+
+```{r}
+head(metadata)
+```
+
+> **Q1.** How many genes are in this dataset? 
+
+```{r}
+nrow(counts)
+```
+There are 38694 genes in this dataset. 
+
+> **Q2.** How many ‘control’ cell lines do we have? 
+
+```{r}
+sum(metadata$dex == "control")
+
+#We need to look at the metadata, the dex column. 
+#Then, we use the "==" to see what values in the dataset are contol. #Then, we use "sum()" around the whole code, to give us the number of controls we have. 
+```
+We have 4 'control' cell lines. 
+
+First I need to extract all the "control" columns. Then I will take the rowise mean to get the average count values for all genes in these four experiments.
+
+```{r}
+control.inds <- metadata$dex == "control"
+control.counts <- counts[ , control.inds]
+head(control.counts)
+```
+
+```{r}
+control.mean <- rowMeans(control.counts)
+```
+
+> **Q3.** How would you make the above code in either approach more robust?
+
+You could simplify the code to take the mean in a more general way, as shown above. The problem with getting the mean in the two codes (from the lab workbook, where you divide by 4) is that if our dataset changes (i.e. we get more or less data values), the mean will not be correct. We can simplify, or make the code more robust, if we use a more straightforward, general approach when calculating the mean (so it is applicable to a lot of different scenarios).
+
+Now do the same for the drug treated experiments (i.e. columns)
+
+> **Q4.** Follow the same procedure for the treated samples (i.e. calculate the mean per gene across drug treated samples and assign to a labeled vector called treated.mean)
+
+```{r}
+treated.inds <- metadata$dex == "treated"
+treated.counts <- counts [ , treated.inds]
+head(treated.counts)
+treated.mean <- rowMeans(treated.counts)
+```
+
+We will combine our meancount data for bookkeeping purposes. 
+
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+```
+
+Let's make a quick plot.
+
+> **Q5 (a).** Create a scatter plot showing the mean of the treated samples against the mean of the control samples. Your plot should look something like the following.
+
+```{r}
+plot(meancounts)
+```
+
+> **Q5 (b).** You could also use the ggplot2 package to make this figure producing the plot below. What geom_?() function would you use for this plot?
+
+You would use the geom_point() function. 
+
+We need a log transformation to see details of our data!
+
+I am going to replot the plot; this time using a log scale!
+
+> **Q6.** Try plotting both axes on a log scale. What is the argument to plot() that allows you to do this?
+
+```{r}
+plot(meancounts, log ="xy")
+```
+
+The argument that allows us to put both axes on a log scale is **log = "xy"**. 
+
+We often use log2 in this field because it has nice math properties that make interpretation easier. 
+
+```{r}
+log2(10/10)
+log2(40/10)
+log2(5/10)
+```
+
+Cool, we see 0 values for no change and + values for increases and - values for decreases. This nice property leads us to work with **log2(fold-change)** all the time in the genomics and proteomics field.
+
+Let's add the **log2(fold-change)** values to our 'meancounts' dataframe. 
+
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+head(meancounts)
+```
+
+I need to exclude the genes (i.e. rows) with zero counts because we can't say anything about these as we have no data for them!
+
+```{r}
+head(meancounts[,1:2])
+```
+
+```{r}
+head(meancounts[,1:2] == 0)
+```
+
+```{r}
+which(c(F,F,T,T))
+```
+
+I can use the **which()** function with the 'arr.ind=TRUE' argument to get the columns and rows where TRUE values are (i.e. the zero counts in our case). 
+
+```{r}
+zero.vals <- which(meancounts[,1:2] == 0, arr.ind = TRUE)
+head(zero.vals)
+```
+
+```{r}
+to.rm <- unique(zero.vals[, "row"])
+head(sort(to.rm))
+```
+
+Now remove these from our 'meancounts' dataframe.
+
+```{r}
+mycounts <- meancounts[-to.rm,]
+head(mycounts)
+```
+
+How many do we have left?
+
+```{r}
+nrow(mycounts)
+```
+
+> **Q7.** What is the purpose of the arr.ind argument in the which() function call above? Why would we then take the first column of the output and need to call the unique() function?
+
+It will tell you the row and column positions where the TRUE values (zeros in our case) are. 
+
+> **Q8.** Using the up.ind vector above can you determine how many up regulated genes we have at the greater than 2 fc level? 
+
+Upregulated: 
+```{r}
+sum(mycounts$log2fc > 2)
+```
+
+> **Q9.** Using the down.ind vector above can you determine how many down regulated genes we have at the greater than 2 fc level? 
+
+Downregulated:
+```{r}
+sum(mycounts$log2fc < -2)
+```
+
+> **Q10.** Do you trust these results? Why or why not?
+
+Probably not. This is because we have not analyzed whether or not any/all of the differences we have seen are significant (based on p-values). 
+
+
+
+## DESeq2 analysis
+
+Let’s do this the right way. DESeq2 is an R package specifically for analyzing count-based NGS data like RNA-seq. It is available from Bioconductor.
+
+```{r}
+library(DESeq2)
+```
+
+We need to first setup the input object for deseq
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex)
+dds
+```
+
+Now we can run DESeq analysis:
+
+```{r}
+dds <- DESeq(dds)
+```
+
+To get at the results, here we use the deseq 'results()' function: 
+
+```{r}
+res <- results(dds)
+head(res)
+```
+
+
+
+## Volcano Plots 
+Let’s make a commonly produced visualization from this data, namely a so-called Volcano plot. These summary figures are frequently used to highlight the proportion of genes that are both significantly regulated and display a high fold change.
+
+```{r}
+plot( res$log2FoldChange, res$padj)
+```
+
+That is not a useful plot because all the small p-values are hidden at the bottom of the plot and we can't really see them. Log will help.
+
+```{r}
+plot( res$log2FoldChange,  log(res$padj))
+```
+
+Getting better...We can flip this p-value axis by just putting a minus sign on it then we will have the classic volcano plot used by the rest of the world. We can also change the labels.
+
+```{r}
+plot( res$log2FoldChange,  -log(res$padj), 
+      xlab="Log2(FoldChange)",
+      ylab="-Log(P-value)")
+```
+
+Finally, let's add some lines and color to this point to draw attention to the genes (i.e. points) we care about - that is those with large fold-change and low p-values (i.e. high -log(p-values)). 
+
+```{r}
+plot( res$log2FoldChange,  -log(res$padj), 
+ ylab="-Log(P-value)", xlab="Log2(FoldChange)")
+
+# Add some cut-off lines
+abline(v=c(-2,2), col="gray", lty=2)
+abline(h=-log(0.05), col="gray", lty=2)
+```
+
+```{r}
+# Setup our custom point color vector 
+mycols <- rep("gray", nrow(res))
+mycols[ abs(res$log2FoldChange) > 2 ]  <- "red" 
+
+inds <- (res$padj < 0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "blue"
+
+# Volcano plot with custom colors 
+plot( res$log2FoldChange,  -log(res$padj), 
+ col=mycols, ylab="-Log(P-value)", xlab="Log2(FoldChange)" )
+
+# Cut-off lines
+abline(v=c(-2,2), col="gray", lty=2)
+abline(h=-log(0.1), col="gray", lty=2)
+```
+
+Yay!
+
+
+
+
+
+
+
