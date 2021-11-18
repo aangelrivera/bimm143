@@ -1,0 +1,29 @@
+---
+title: "Class16"
+author: "Angelita Rivera (PID A15522236)"
+date: "11/18/2021"
+output: pdf_document
+---
+
+## Section 1: Differential Expression Analysis
+
+```{r}
+library(DESeq2)
+```
+
+We need to read our data. 
+
+```{r}
+metaFile <- "data/GSE37704_metadata.csv"
+countFile <- "data/GSE37704_featurecounts.csv"
+```
+
+
+
+
+
+
+
+
+
+
