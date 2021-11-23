@@ -1,0 +1,321 @@
+---
+title: "Class17_MiniProject"
+author: "Angelita Rivera (PID A15522236)"
+date: "11/23/2021"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+# Mini-Project COVID Vaccination Rates
+
+As we approach a period of travel and larger gatherings lets have a look at vaccination rates across the State. 
+
+We will take data from the CA.gov site here: 
+- “Statewide COVID-19 Vaccines Administered by ZIP Code” CSV file from: https://data.ca.gov/dataset/covid-19-vaccine-progress-dashboard-data-by-zip-code"
+
+```{r}
+vax <- read.csv("covid19vaccinesbyzipcode_test.csv")
+head(vax)
+```
+
+## Ensure the date column is useful
+
+We will use the **lubridate** package, which can make life allot easier when dealing with dates and times
+
+> **Q1.** What column details the total number of people fully vaccinated? 
+
+The column 'persons_fully_vaccinated'.
+
+> **Q2.** What column details the Zip code tabulation area? 
+
+The column 'zip_code_tabulation_area'.
+
+> **Q3.** What is the earliest date in this dataset?
+
+```{r}
+vax$as_of_date[1]
+```
+
+> **Q4.** What is the latest date in this dataset?
+
+```{r}
+vax$as_of_date[nrow(vax)]
+```
+
+## Quick look at the data structure
+
+As before we can use the **skim()** function to quickly overview and summarize the various columns of the dataset.
+```{r}
+skimr::skim(vax)
+```
+
+> **Q5.** How many numeric columns are in this dataset? 
+
+There are nine numeric columns in this data set.
+
+> **Q6.** Note that there are “missing values” in the dataset. How many NA values there in the persons_fully_vaccinated column? 
+
+```{r}
+sum(is.na(vax$persons_fully_vaccinated))
+```
+
+> **Q7.** What percent of persons_fully_vaccinated values are missing (to 2 significant figures)? 
+
+There is 10.00% of the persons_fully_vaccinate values missing. 
+
+> **Q8.** [Optional]: Why might this data be missing?
+
+They might be missing because of the military bases (or other areas) may not be contributing data. 
+
+
+## Working with dates
+
+```{r}
+# install.packages("lubridate")
+
+library(lubridate)
+```
+
+
+```{r}
+today()
+```
+
+Here we make our data 'as_of_date' column lubridate format...
+
+```{r}
+# Specify that we are using the Year-month-day format
+vax$as_of_date <- ymd(vax$as_of_date)
+```
+
+Now I can do useful math with dates more easily: 
+
+> Q. How many days since the first entry?
+
+```{r}
+today() - vax$as_of_date[1]
+```
+
+> Q. How many days since the last entry?
+
+```{r}
+today() - vax$as_of_date[nrow(vax)]
+```
+
+> **Q9.** How many days between the first and last entry in the data set? 
+
+```{r}
+vax$as_of_date[nrow(vax)] - vax$as_of_date[1]
+```
+
+> **Q10.** How many unique dates are in the dataset (i.e. how many different dates are detailed)?
+
+```{r}
+length(unique(vax$as_of_date))
+```
+
+This sounds good; 
+
+```{r}
+46*7
+```
+
+
+## Working with ZIP Codes
+
+```{r}
+#install.packages("zipcodeR")
+#install.packages("terra")
+```
+```{r}
+library(zipcodeR)
+
+geocode_zip('92037')
+```
+
+More usefully, we can pull census data about ZIP code areas (including median household income etc.). For example:
+
+```{r}
+reverse_zipcode(c('92037', "92109") )
+```
+
+# Focus on San Diego County
+
+Using base R;
+```{r}
+# Subset to San Diego county only areas
+inds <- vax$county == "San Diego"
+
+head(vax[inds,])
+```
+
+Using the **dplyr** package; 
+```{r}
+library(dplyr)
+
+sd <- filter(vax, county == "San Diego")
+
+#How many entries are there in San Diego County?
+nrow(sd)
+```
+
+```{r}
+sd.10 <- filter(vax, county == "San Diego" &
+                age5_plus_population > 10000)
+```
+
+> **Q11.** How many distinct zip codes are listed for San Diego County? 
+
+```{r}
+length(unique(sd$zip_code_tabulation_area))
+```
+
+> **Q12.** What San Diego County Zip code area has the largest 12 + Population in this dataset
+
+```{r}
+ind <- which.max(sd$age12_plus_population)
+sd[ind, ]
+```
+
+> **Q.** What is the population in the 92037 ZIP Code area? 
+
+```{r}
+filter(sd, zip_code_tabulation_area == "92037")[1,]
+```
+
+> **Q13.** What is the overall average “Percent of Population Fully Vaccinated” value for all San Diego “County” as of “2021-11-09”? 
+
+```{r}
+sd.now <- filter(sd, as_of_date == "2021-11-09")
+
+head(sd.now)
+```
+
+```{r}
+mean(sd.now$percent_of_population_fully_vaccinated, na.rm = TRUE)
+```
+
+To get the 6-number summary; 
+
+```{r}
+summary(sd.now$percent_of_population_fully_vaccinated)
+```
+
+> **Q14.** Using either ggplot or base R graphics make a summary figure that shows the distribution of Percent of Population Fully Vaccinated values as of “2021-11-09”?
+
+Using base R; 
+
+```{r}
+hist(sd.now$percent_of_population_fully_vaccinated)
+```
+
+Using ggplot; 
+
+```{r}
+library(ggplot2)
+
+ggplot(sd.now) + 
+  aes(percent_of_population_fully_vaccinated) + geom_histogram(bins = 15) + labs(title = "Histogram of Vaccination Rates Across San Diego County", subtitle = "As of 2021-11-09", x = "Percent of Population Fully Vaccinated in a Zip Code Area", y = "Count (Zip code areas")
+```
+
+
+# Focus on UCSD/La Jolla
+
+```{r}
+ucsd <- filter(sd, zip_code_tabulation_area=="92037")
+
+ucsd[1,]$age5_plus_population
+```
+
+> **Q15.** Using ggplot make a graph of the vaccination rate time course for the 92037 ZIP code area:
+
+```{r}
+ggplot(ucsd) +
+  aes(as_of_date,
+  percent_of_population_fully_vaccinated) +
+  geom_point() +
+  geom_line(group=1) +
+  ylim(c(0,1)) +
+  labs(title = "Vaccination rate for La Jolla CA 92109", x = "Date", y="Percent Vaccinated")
+```
+
+We have about ~90% fully vaccinated. 
+
+# Comparing 92037 to other similar sized areas
+
+Let’s return to the full dataset and look across every zip code area with a population at least as large as that of 92037 on as_of_date “2021-11-16”.
+
+```{r}
+# Subset to all CA areas with a population as large as 92037
+vax.36.all <- filter(vax, age5_plus_population > 36144)
+
+nrow(vax.36.all)
+```
+
+How many unique zip codes have a population as large as 92037? 
+
+```{r}
+length(unique(vax.36.all$zip_code_tabulation_area))
+```
+
+> **Q16.** Calculate the mean “Percent of Population Fully Vaccinated” for ZIP code areas with a population as large as 92037 (La Jolla) as_of_date “2021-11-16”. Add this as a straight horizontal line to your plot from above with the geom_hline() function?
+
+```{r}
+#mean(vax.36$percent_of_population_fully_vaccinated)
+```
+
+Add H-line
+```{r}
+ggplot(ucsd) +
+  aes(as_of_date,
+  percent_of_population_fully_vaccinated) +
+  geom_point() +
+  geom_line(group=1) +
+  geom_hline(yintercept = 0.66, col = "red") +
+  ylim(c(0,1)) +
+  labs(title = "Vaccination rate for La Jolla CA 92109", x = "Date", y="Percent Vaccinated")
+```
+
+> **Q17.** What is the 6 number summary (Min, 1st Qu., Median, Mean, 3rd Qu., and Max) of the “Percent of Population Fully Vaccinated” values for ZIP code areas with a population as large as 92037 (La Jolla) as_of_date “2021-11-16”?
+
+```{r}
+summary(vax.36.all$percent_of_population_fully_vaccinated)
+```
+
+> **Q18.** Using ggplot generate a histogram of this data.
+
+```{r}
+hist(vax.36.all$percent_of_population_fully_vaccinated)
+```
+
+> **Q19.** Is the 92109 and 92040 ZIP code areas above or below the average value you calculated for all these above?
+
+They are below the average value I calculated. 
+
+> **Q20.** Finally make a time course plot of vaccination progress for all areas in the full dataset with a age5_plus_population > 36144.
+
+```{r}
+ggplot(vax.36.all) + 
+  aes(as_of_date, 
+      percent_of_population_fully_vaccinated, 
+      group = zip_code_tabulation_area) + 
+      geom_line(alpha = 0.2, col = "blue") + 
+      geom_hline(yintercept = 0.66, col = "red") + labs(title = "Vaccination rate across California", subtitle = "Only areas with a population above 36k are shown.", y = "Percent Vaccinated", x = "Date")
+```
+
+> **Q21.** How do you feel about traveling for Thanksgiving and meeting for in-person class next Week?
+
+I would rather not meet in person. I feel like we're going to see high rates of exposure, even if everyone is fully vaccinated. I would be happy to log online during next week's classes; or at least maybe we could have a hybrid week? Maybe Tuesday online and Thursday in person (after hopefully everyone gets tested); I do like the help in person provides, I'm just a little scared about potential exposure.
+
+
+
+
+
+
+
+
+
+
+
+
