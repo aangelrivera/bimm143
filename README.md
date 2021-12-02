@@ -6,8 +6,8 @@ This is a showcase of my work in this class.
 
 - Class 5: [Data Visualization with ggplot2](https://github.com/aangelrivera/bimm143/blob/main/Class05.R/Class05.R)
 
-- Class 6:  
 - 
+
 - Class 8: [Introduction to Machine Learning]
 
 - Class 9: [Cancer Cell Mini-Project](https://github.com/aangelrivera/bimm143/blob/main/Class_09_MiniProject/Class_09_Mini%20Project.Rmd) 
