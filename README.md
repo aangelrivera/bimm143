@@ -12,7 +12,7 @@ This is a showcase of my work in this class.
 
 - Class 10: [Halloween Candy Mini-Project](https://github.com/aangelrivera/bimm143/blob/main/Class%2010:%20Halloween%20Candy/Class%2010_Halloween%20Candy.Rmd) 
 
-- Class 11: [Structural Bioinformatics Part I](https://github.com/aangelrivera/bimm143/blob/main/Class%2011/Class%2011_Structural%20Bioinformatics.Rmd) 
+- Class 11: [Structural Bioinformatics Part I]() 
 
 - Class 12: [Structural Bioinformatics Part II](https://github.com/aangelrivera/bimm143/blob/main/Class%2011/Class%2012_Structural%20Bioinformatics%20II.Rmd) 
 
