@@ -1,0 +1,13 @@
+---
+title: "Class_13"
+output: html_document
+---
+```{r}
+blast <- read.delim("mm_second.x.zebrafish.tsv")
+head(blast)
+```
+
+```{r}
+
+```
+

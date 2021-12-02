@@ -2,7 +2,7 @@
 title: "Class 11: Structural Bioinformatics"
 author: "Angelita Rivera (PID A15522236)"
 date: "11/2/2021"
-output: html_document
+output: pdf_document
 ---
 
 ## A quick look into PDB

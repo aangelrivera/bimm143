@@ -207,6 +207,22 @@ res <- results(dds)
 head(res)
 ```
 
+## Save our results
+
+Write out whole results data (including genes that don't change significantly).
+```{r}
+write.csv(res, file = "allmyresult.csv")
+```
+
+Focus in on those genes with a small p-value (i.e. show a significant change). 
+```{r}
+res05 <- results(dds, alpha = 0.05)
+```
+
+
+```{r}
+summary(res05)
+```
 
 
 ## Volcano Plots 
@@ -259,6 +275,114 @@ abline(h=-log(0.1), col="gray", lty=2)
 ```
 
 Yay!
+
+
+## Add annotation data for our genes
+
+For this we need two bioconductor packages. 
+
+```{r}
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+```
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+
+We will use the 'mapIDs' function to translate between identifiers from different databases. 
+
+```{r}
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res),      # Our genenames
+                     keytype="ENSEMBL",        # The format of our genenames
+                     column="SYMBOL",          # The new format we want
+                     multiVals="first")
+```
+
+```{r}
+head(res)
+```
+
+We need ENTREZ ids for pathway analysis with KEGG. 
+```{r}
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res),
+                     column="ENTREZID",
+                     keytype="ENSEMBL",
+                     multiVals="first")
+```
+
+```{r}
+head(res)
+```
+
+Let's make another volcano plot with some gene labels. For this we can use the **EnhancedVolcano** package.
+
+```{r}
+library(EnhancedVolcano)
+
+x <- as.data.frame(res)
+
+EnhancedVolcano(x,
+    lab = x$symbol,
+    x = 'log2FoldChange',
+    y = 'pvalue')
+```
+
+
+## Pathway analysis / geneset annotation
+
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+```
+
+```{r}
+# Examine the first 2 pathways in this kegg set for humans
+head(kegg.sets.hs, 2)
+```
+
+The main **gage()** function requires a named vector of fold changes, where the names of the values are the Entrez gene IDs.
+
+```{r}
+#res$entrez
+#res$log2FoldChange
+
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+
+```{r}
+attributes(keggres)
+```
+
+This separates out results by "greater" and "less" i.e. those that are up regulated and those that are down regulated. 
+
+```{r}
+# Look at the first three down (less) pathways
+head(keggres$less, 3)
+```
+
+Now, let’s try out the 'pathview()' function from the **pathview** package to make a pathway plot with our RNA-Seq expression results shown in color.
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa05310")
+```
+
+![](hsa05310.pathview.png)
+
+
 
 
 

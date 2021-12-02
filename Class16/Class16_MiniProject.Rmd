@@ -1,0 +1,169 @@
+---
+title: "Class16_MiniProject"
+author: "Angelita Rivera (PID A15522236)"
+date: "11/18/2021"
+output: pdf_document
+---
+
+## Differential Expression Analysis
+
+```{r}
+library(DESeq2)
+```
+
+We need to load our data. 
+
+```{r}
+metaFile <- "data/GSE37704_metadata.csv"
+countFile <- "data/GSE37704_featurecounts.csv"
+```
+
+
+```{r}
+colData = read.csv("GSE37704_metadata.csv", row.names=1)
+head(colData)
+
+countData = read.csv("GSE37704_featurecounts.csv", row.names=1)
+head(countData)
+```
+
+```{r}
+# Note we need to remove the odd first $length col
+countData = countData[,-1]
+head(countData)
+```
+
+## Running DESeq2
+
+```{r}
+library(DESeq2)
+```
+
+Set up; 
+
+```{r}
+dds = DESeqDataSetFromMatrix(countData=countData,
+                             colData=colData,
+                             design=~condition)
+
+dds = DESeq(dds)
+dds
+```
+
+Get our results
+
+```{r}
+res = results(dds, contrast=c("condition", "hoxa1_kd", "control_sirna"))
+```
+
+
+```{r}
+summary(res)
+```
+
+## Here, we will use the AnnotationDbi package to add gene symbols and entrez ids to our results. 
+
+```{r}
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+```
+
+
+Here is a reminder of what ID types are available in the 'org.Hs.eg.db' data set. 
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+We want to add gene symbols and entrez IDs;
+
+```{r}
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys=row.names(res), 
+                    keytype="ENSEMBL",
+                    column="SYMBOL",
+                    multiVals="first")
+
+res$entrez = mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="ENTREZID",
+                    multiVals="first")
+```
+
+## Volcano Plot
+
+```{r}
+plot( res$log2FoldChange, -log(res$padj) )
+```
+
+## PCA Plot 
+
+```{r}
+head(countData)
+```
+
+```{r}
+countsnozero <- countData[rowSums(countData) !=0, ]
+```
+
+```{r}
+pca <- prcomp(t(countsnozero))
+```
+
+
+```{r}
+mycols <- rep(c("red", "blue"), each =3 )
+mycols
+```
+
+
+```{r}
+plot(pca$x[,1:2], col = mycols)
+```
+
+
+## Pathway Analysis 
+
+```{r}
+library(gage)
+library(gageData)
+library(pathview)
+```
+
+Focus on the signaling subset 
+
+```{r}
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+# Examine the first 3 pathways
+head(kegg.sets.hs, 3)
+```
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+
+```{r}
+head(keggres$less)
+```
+
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+
+![](hsa04110.pathview.png)
